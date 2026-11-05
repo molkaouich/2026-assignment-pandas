@@ -14,40 +14,61 @@ import matplotlib.pyplot as plt
 
 
 def load_data():
-    """Load data from the CSV files referundum/regions/departments."""
-    referendum = pd.read_csv('data/referendum.csv', sep=";", dtype={"Department code": str})
-    departments = pd.read_csv('data/departments.csv', dtype=str)
-    regions = pd.read_csv('data/regions.csv', dtype=str)
+    """Load data from the CSV files referendum/regions/departments."""
+    referendum = pd.read_csv(
+        "data/referendum.csv",
+        sep=";",
+        dtype={"Department code": str}
+    )
+    departments = pd.read_csv("data/departments.csv", dtype=str)
+    regions = pd.read_csv("data/regions.csv", dtype=str)
 
     return referendum, regions, departments
 
 
 def merge_regions_and_departments(regions, departments):
-    """Merge regions and departments in one DataFrame.
+    """Merge regions and departments in one DataFrame."""
+    regions_and_departments = pd.merge(
+        regions,
+        departments,
+        left_on="code",
+        right_on="region_code",
+        how="inner"
+    )
 
-    The columns in the final DataFrame should be:
-    ['code_reg', 'name_reg', 'code_dep', 'name_dep']
-    """
-    regions_and_departments = pd.merge(regions, departments, left_on="code", right_on="region_code", how="inner")
     regions_and_departments = regions_and_departments.rename(
-        columns={"code_x": "code_reg", "code_y": "code_dep", "name_x": "name_reg", "name_y": "name_dep"})
-    return regions_and_departments[['code_reg', 'name_reg', 'code_dep', 'name_dep']]
+        columns={
+            "code_x": "code_reg",
+            "code_y": "code_dep",
+            "name_x": "name_reg",
+            "name_y": "name_dep"
+        }
+    )
+
+    return regions_and_departments[
+        ["code_reg", "name_reg", "code_dep", "name_dep"]
+    ]
 
 
 def merge_referendum_and_areas(referendum, regions_and_departments):
-    """Merge referendum and regions_and_departments in one DataFrame.
-
-    You can drop the lines relative to DOM-TOM-COM departments, and the
-    french living abroad, which all have a code that contains `Z`.
-
-    DOM-TOM-COM departments are departements that are remote from metropolitan
-    France, like Guadaloupe, Reunion, or Tahiti.
-    """
+    """Merge referendum and geographical areas."""
     referendum1 = referendum.copy()
-    referendum1 = referendum1[referendum1["Department code"].str.contains("Z") == False]
-    referendum1["Department code"] = referendum1["Department code"].str.zfill(2)
-    referendum_and_areas = pd.merge(referendum1, regions_and_departments,
-                                    left_on="Department code", right_on="code_dep", how="inner")
+
+    referendum1 = referendum1[
+        ~referendum1["Department code"].str.contains("Z", na=False)
+    ].copy()
+
+    referendum1["Department code"] = (
+        referendum1["Department code"].str.zfill(2)
+    )
+
+    referendum_and_areas = pd.merge(
+        referendum1,
+        regions_and_departments,
+        left_on="Department code",
+        right_on="code_dep",
+        how="inner"
+    )
 
     return referendum_and_areas
 
